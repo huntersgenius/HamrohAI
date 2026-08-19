@@ -275,3 +275,27 @@ class TestPersonalContainer:
             await db.scalars(sa.select(Diagnosis).where(Diagnosis.care_thread_id == personal.id))
         ).all()
         assert len(kept) == 1
+
+class TestEngineIsPostgres:
+    """The isolation guarantees below are only meaningful on PostgreSQL.
+
+    The personal-container rule is enforced by a *partial* unique index, which
+    SQLite does not support. If someone repoints TEST_DATABASE_URL at SQLite the
+    suite would still go green while silently testing nothing, so the engine is
+    asserted explicitly.
+    """
+
+    async def test_tests_run_against_postgresql(self, db) -> None:
+        version = await db.scalar(sa.text("SELECT version()"))
+        assert "PostgreSQL" in version, version
+        assert db.bind.dialect.name == "postgresql"
+
+    async def test_the_partial_unique_index_actually_exists(self, db) -> None:
+        indexdef = await db.scalar(
+            sa.text(
+                "SELECT indexdef FROM pg_indexes "
+                "WHERE indexname = 'uq_care_thread_personal'"
+            )
+        )
+        assert indexdef is not None, "the personal-container index is missing"
+        assert "WHERE (doctor_user_id IS NULL)" in indexdef, indexdef
