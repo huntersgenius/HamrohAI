@@ -45,3 +45,12 @@ Thumbs.db
 *.db
 minio-data/
 postgres-data/
+
+# Flutter generated platform files that are rebuilt from pubspec
+mobile/.dart_tool/
+mobile/build/
+mobile/android/.gradle/
+mobile/android/app/src/main/java/io/flutter/plugins/
+mobile/ios/Runner.xcworkspace/xcshareddata/
+mobile/ios/Flutter/ephemeral/
+mobile/web/favicon.png
