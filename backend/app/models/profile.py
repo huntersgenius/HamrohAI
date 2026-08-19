@@ -65,8 +65,14 @@ class DoctorProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     answered_count: Mapped[int] = mapped_column(sa.Integer, default=0, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="doctor_profile")
+    # Eager: the API serialises the profile together with its subscription, and
+    # a lazy load at serialisation time raises MissingGreenlet under async
+    # SQLAlchemy. It is a 1:1 row, so the extra select costs nothing here.
     subscription: Mapped[DoctorSubscription | None] = relationship(
-        back_populates="doctor", cascade="all, delete-orphan", uselist=False
+        back_populates="doctor",
+        cascade="all, delete-orphan",
+        uselist=False,
+        lazy="selectin",
     )
 
     __table_args__ = (

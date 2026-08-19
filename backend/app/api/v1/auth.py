@@ -8,9 +8,7 @@ account that owns that number.
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, status
 
 from app.api.deps import ClientIp, CurrentUser, DbSession, UserAgent
 from app.core.config import settings
@@ -71,7 +69,6 @@ async def verify_phone(
     db: DbSession,
     ip: ClientIp,
     ua: UserAgent,
-    onboarding_token: Annotated[str | None, Body(embed=True)] = None,
 ) -> SessionResponse:
     """Verify the code and issue a session.
 
@@ -87,8 +84,10 @@ async def verify_phone(
 
         user.phone_verified_at = datetime.now(UTC)
 
-    if onboarding_token:
-        provider, profile, locale = auth_service.read_onboarding_token(onboarding_token)
+    if payload.onboarding_token:
+        provider, profile, locale = auth_service.read_onboarding_token(
+            payload.onboarding_token
+        )
         await auth_service.attach_identity(
             db, user, provider, profile.subject, {"email": profile.email}
         )

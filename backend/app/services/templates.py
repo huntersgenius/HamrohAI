@@ -162,12 +162,22 @@ async def apply_template_to_thread(
 
 
 def checkin_questions_for(template: DiagnosisTemplate | None, *, slot: str = "day") -> list[dict]:
-    """Questions the patient answers in the "Bugun" tab for a given slot."""
+    """Questions the patient answers in the "Bugun" tab.
+
+    ``slot="day"`` — the default the app uses — means *the whole day*: it
+    returns every question scheduled for today, morning and evening ones
+    included. The "Bugun" tab is a single card, so filtering it down to one
+    slot would hide the template's main indicator (e.g. morning glucose) and
+    leave the patient no way to record it.
+
+    Passing a specific slot narrows the list to that slot, which is what a
+    future timed reminder deep-link would use.
+    """
     if template is None:
         return []
     questions = []
     for question in template.checkin_questions or []:
         slots = question.get("slots") or ["day"]
-        if slot in slots or "day" in slots:
+        if slot == "day" or slot in slots or "day" in slots:
             questions.append(question)
     return questions

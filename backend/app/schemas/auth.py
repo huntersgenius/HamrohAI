@@ -37,6 +37,9 @@ class StartPhoneAuthResponse(BaseModel):
 class VerifyPhoneRequest(BaseModel):
     challenge_id: uuid.UUID
     code: str = Field(min_length=4, max_length=8)
+    # Present when the user signed in with Google/Telegram first: it links that
+    # provider to whichever account owns this phone number (spec 2.1).
+    onboarding_token: str | None = None
 
 
 class OAuthGoogleRequest(BaseModel):
