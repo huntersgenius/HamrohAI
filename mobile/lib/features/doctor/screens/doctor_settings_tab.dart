@@ -68,6 +68,10 @@ class DoctorSettingsTab extends ConsumerWidget {
                     },
                   ),
                   const Divider(height: 1),
+                  // Spec 4.2 tab 4: a doctor qualified in more than one field
+                  // chooses which ones they take consultations in.
+                  _SpecialtyPicker(doctor: doctor),
+                  const Divider(height: 1),
                   ListTile(
                     title: Text(l10n.t('doctor.consultation_price')),
                     subtitle: Text(
@@ -202,6 +206,84 @@ class DoctorSettingsTab extends ConsumerWidget {
     try {
       await ref.read(doctorRepositoryProvider).updateConsultationSettings(
         <String, dynamic>{'consultation_price_uzs': price},
+      );
+      ref.invalidate(doctorProfileProvider);
+    } catch (error) {
+      if (context.mounted) showApiError(context, error);
+    }
+  }
+}
+
+/// Extra specialties this doctor accepts consultations in, beyond their primary
+/// one (spec 4.2 tab 4).
+class _SpecialtyPicker extends ConsumerWidget {
+  const _SpecialtyPicker({required this.doctor});
+
+  final DoctorProfile doctor;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = context.l10n;
+    final AsyncValue<List<SpecialtyOption>> options = ref.watch(specialtiesProvider);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l10n.t('doctor.consultation_specialties'),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          options.when(
+            loading: () => const LinearProgressIndicator(minHeight: 2),
+            error: (Object error, StackTrace _) => Text(l10n.t('common.error')),
+            data: (List<SpecialtyOption> all) => Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: all.map((SpecialtyOption option) {
+                // The primary specialty is always included and cannot be
+                // removed, so it is shown selected and disabled.
+                final bool isPrimary = option.code == doctor.specialty;
+                final bool selected =
+                    isPrimary || doctor.consultationSpecialties.contains(option.code);
+
+                return FilterChip(
+                  selected: selected,
+                  label: Text(l10n.fromMap(option.name)),
+                  onSelected: isPrimary
+                      ? null
+                      : (bool value) => _toggle(context, ref, option.code, value),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggle(
+    BuildContext context,
+    WidgetRef ref,
+    String code,
+    bool add,
+  ) async {
+    final List<String> next = <String>[...doctor.consultationSpecialties];
+    if (add) {
+      next.add(code);
+    } else {
+      next.remove(code);
+    }
+    try {
+      await ref.read(doctorRepositoryProvider).updateConsultationSettings(
+        <String, dynamic>{'consultation_specialties': next},
       );
       ref.invalidate(doctorProfileProvider);
     } catch (error) {
