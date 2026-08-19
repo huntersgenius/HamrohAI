@@ -146,6 +146,9 @@ python -m app.cli complete-payout <payout-id> --note "karta orqali"
 
 # Fon ishini qo'lda ishga tushirish
 python -m app.cli run-job weekly_reports
+
+# Provayderga qaytarilishi kerak bo'lgan to'lovlar
+python -m app.cli refunds
 ```
 
 Arxitektura kelajakdagi admin panelga tayyor: `UserRole.ADMIN` mavjud,
@@ -198,6 +201,17 @@ bemor to'laydi (100%)
 Hamyon — ichki ledger. Har bir kredit `idempotency_key` bilan yoziladi, shuning
 uchun qayta urinilgan webhook shifokorga ikki marta to'lay olmaydi.
 
+**Qaytarish (refund) haqida muhim eslatma.** SLA ishi 24 soat ichida javob
+kelmasa konsultatsiyani *va unga bog'liq `payments` yozuvini* darhol `refunded`
+holatiga o'tkazadi — ledger va provayder hisoboti bir-biriga mos bo'lib qoladi.
+Ammo provayder tomonidagi haqiqiy reversal MVP'da **qo'lda** bajariladi, xuddi
+pul yechish kabi:
+
+```bash
+python -m app.cli refunds                  # kutilayotgan reversal'lar ro'yxati
+python -m app.cli settle-refund <payment-id>   # o'tkazilgandan keyin belgilash
+```
+
 Testlar: `backend/tests/test_payments.py` (29 ta test).
 
 ---
@@ -206,7 +220,7 @@ Testlar: `backend/tests/test_payments.py` (29 ta test).
 
 ```bash
 cd backend
-python -m pytest -q          # 162 ta test
+python -m pytest -q          # 172 ta test
 ruff check app tests
 ```
 

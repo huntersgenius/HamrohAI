@@ -406,8 +406,34 @@ async def mark_refunded(
     ):
         return consultation
 
+    now = datetime.now(UTC)
     consultation.status = ConsultationStatus.REFUNDED
-    consultation.refunded_at = datetime.now(UTC)
+    consultation.refunded_at = now
+
+    # The payment row must move with it, or reconciliation against the provider
+    # shows money received with no matching refund. Idempotent: a refund that
+    # originated at the provider has already set this.
+    from app.models.billing import Payment
+    from app.models.enums import PaymentStatus
+
+    payments = (
+        await db.scalars(
+            sa.select(Payment).where(
+                Payment.consultation_id == consultation.id,
+                Payment.status == PaymentStatus.PAID,
+            )
+        )
+    ).all()
+    for payment in payments:
+        payment.status = PaymentStatus.REFUNDED
+        payment.refunded_at = now
+        # Flagged for the finance operator: the provider-side reversal is a
+        # manual step in the MVP, exactly like payouts (spec 7).
+        payment.provider_payload = {
+            **(payment.provider_payload or {}),
+            "refund_reason": reason,
+            "refund_pending_operator": True,
+        }
     await db.flush()
 
     patient = await db.get(User, consultation.patient_user_id)

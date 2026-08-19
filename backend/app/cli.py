@@ -171,6 +171,63 @@ async def cmd_complete_payout(payout_id: str, note: str | None) -> None:
         print(f"payout {payout_id} marked as paid")  # noqa: T201
 
 
+async def cmd_list_refunds() -> None:
+    """Refunds awaiting a provider-side reversal.
+
+    The SLA job returns the money in our ledger immediately; pushing the
+    reversal to Click/Payme is a manual finance step in the MVP, so this is the
+    operator's worklist.
+    """
+    from app.models.billing import Payment
+    from app.models.consultation import Consultation
+    from app.models.enums import PaymentStatus
+
+    async with get_sessionmaker()() as db:
+        rows = (
+            await db.execute(
+                sa.select(Payment, Consultation, User)
+                .join(Consultation, Consultation.id == Payment.consultation_id)
+                .join(User, User.id == Payment.user_id)
+                .where(Payment.status == PaymentStatus.REFUNDED)
+                .order_by(Payment.refunded_at)
+            )
+        ).all()
+        pending = [
+            (payment, consultation, user)
+            for payment, consultation, user in rows
+            if (payment.provider_payload or {}).get("refund_pending_operator")
+        ]
+        if not pending:
+            print("no refunds awaiting a provider reversal")  # noqa: T201
+            return
+        for payment, consultation, user in pending:
+            print(  # noqa: T201
+                f"{payment.provider.value:<6} {payment.provider_transaction_id or '-':<24} "
+                f"{payment.amount_uzs:>9,} UZS  {user.phone:<15} "
+                f"consultation={consultation.id}"
+            )
+
+
+async def cmd_settle_refund(payment_id: str) -> None:
+    """Mark a refund as pushed to the provider."""
+    import uuid as _uuid
+
+    from app.models.billing import Payment
+
+    async with get_sessionmaker()() as db:
+        payment = await db.get(Payment, _uuid.UUID(payment_id))
+        if payment is None:
+            print("payment not found", file=sys.stderr)  # noqa: T201
+            raise SystemExit(1)
+        payload = dict(payment.provider_payload or {})
+        payload["refund_pending_operator"] = False
+        payload["refund_settled_at"] = datetime.now(UTC).isoformat()
+        payment.provider_payload = payload
+        await db.commit()
+        print(f"refund {payment_id} marked as settled")  # noqa: T201
+
+
+
 async def cmd_run_job(name: str) -> None:
     from app.jobs.tasks import JOBS, run_job
 
@@ -309,6 +366,10 @@ def main() -> None:
     approve.add_argument("phone")
 
     sub.add_parser("payouts", help="list pending payout requests")
+    sub.add_parser("refunds", help="list refunds awaiting a provider reversal")
+
+    settle = sub.add_parser("settle-refund", help="mark a refund as pushed to the provider")
+    settle.add_argument("payment_id")
 
     complete = sub.add_parser("complete-payout", help="mark a payout as transferred")
     complete.add_argument("payout_id")
@@ -329,6 +390,10 @@ def main() -> None:
                 await cmd_approve_doctor(args.phone)
             elif args.command == "payouts":
                 await cmd_list_payouts()
+            elif args.command == "refunds":
+                await cmd_list_refunds()
+            elif args.command == "settle-refund":
+                await cmd_settle_refund(args.payment_id)
             elif args.command == "complete-payout":
                 await cmd_complete_payout(args.payout_id, args.note)
             elif args.command == "run-job":

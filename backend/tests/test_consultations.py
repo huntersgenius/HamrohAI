@@ -361,6 +361,71 @@ class TestSlaRefund:
         assert consultation.status == ConsultationStatus.ANSWERED
 
 
+    async def test_refund_moves_the_payment_row_too(self, db) -> None:
+        """A refunded consultation must not leave a PAID payment behind.
+
+        Otherwise reconciliation against Click/Payme shows money received with
+        no matching refund record.
+        """
+        from app.models.enums import PaymentProvider, PaymentPurpose, PaymentStatus
+        from app.services.billing import create_payment
+
+        patient = await make_patient(db, "+998901200046")
+        doctor, _ = await make_doctor(db, "+998901200047")
+        await db.commit()
+
+        consultation = await _paid_consultation(db, patient, doctor, claim=False)
+        payment = await create_payment(
+            db,
+            user=patient,
+            provider=PaymentProvider.CLICK,
+            purpose=PaymentPurpose.CONSULTATION,
+            amount_uzs=consultation.price_uzs,
+            consultation_id=consultation.id,
+        )
+        payment.status = PaymentStatus.PAID
+        consultation.sla_expires_at = datetime.now(UTC) - timedelta(minutes=1)
+        await db.commit()
+
+        await service.expire_unanswered(db)
+        await db.commit()
+
+        await db.refresh(payment)
+        assert payment.status == PaymentStatus.REFUNDED
+        assert payment.refunded_at is not None
+        # Flagged for the operator: the provider-side reversal is manual.
+        assert payment.provider_payload["refund_pending_operator"] is True
+
+    async def test_refund_is_idempotent_across_payments(self, db) -> None:
+        from app.models.enums import PaymentProvider, PaymentPurpose, PaymentStatus
+        from app.services.billing import create_payment
+
+        patient = await make_patient(db, "+998901200048")
+        doctor, _ = await make_doctor(db, "+998901200049")
+        await db.commit()
+
+        consultation = await _paid_consultation(db, patient, doctor, claim=False)
+        payment = await create_payment(
+            db,
+            user=patient,
+            provider=PaymentProvider.PAYME,
+            purpose=PaymentPurpose.CONSULTATION,
+            amount_uzs=consultation.price_uzs,
+            consultation_id=consultation.id,
+        )
+        payment.status = PaymentStatus.PAID
+        await db.commit()
+
+        await service.mark_refunded(db, consultation.id)
+        await db.commit()
+        first = payment.refunded_at
+
+        await service.mark_refunded(db, consultation.id)
+        await db.commit()
+        await db.refresh(payment)
+        assert payment.refunded_at == first
+
+
 class TestRating:
     async def test_rating_updates_the_doctor_average(self, db) -> None:
         patient = await make_patient(db, "+998901200050")
