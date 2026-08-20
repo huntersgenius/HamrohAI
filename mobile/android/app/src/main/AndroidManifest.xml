@@ -6,6 +6,13 @@
     <!-- Exact-time dosing reminders survive Doze -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Photographing a prescription, a licence or a lab result straight into a
+         care thread (image_picker with ImageSource.camera). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- A tablet without a camera must still be installable: the app degrades
+         to picking an existing file. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
     <application
         android:label="Hamroh"
@@ -58,6 +65,11 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
+        </intent>
+        <!-- Android 11+ package visibility: without this the camera app is
+             invisible to image_picker and taking a photo silently fails. -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
     </queries>
 </manifest>

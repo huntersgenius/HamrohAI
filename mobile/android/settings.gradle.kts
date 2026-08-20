@@ -20,6 +20,11 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.7.0" apply false
     id("org.jetbrains.kotlin.android") version "1.8.22" apply false
+    // Reads android/app/google-services.json and turns it into the resources
+    // firebase_core needs at runtime. The file currently in the tree is a
+    // PLACEHOLDER — see README.md, "PRODUCTION'GA CHIQISHDAN OLDIN
+    // ALMASHTIRILISHI KERAK BO'LGAN FAYLLAR VA KALITLAR".
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 include(":app")

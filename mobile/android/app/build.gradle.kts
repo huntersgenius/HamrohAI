@@ -3,6 +3,10 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Consumes app/google-services.json. That file is a committed PLACEHOLDER:
+    // the build succeeds with it, but FCM will not deliver anything until the
+    // real file from the Firebase console replaces it.
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -11,6 +15,10 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications schedules dosing reminders with
+        // java.time, which minSdk 21 devices do not have. Without desugaring
+        // `flutter build apk --release` fails at :app:checkReleaseAarMetadata.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -37,6 +45,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

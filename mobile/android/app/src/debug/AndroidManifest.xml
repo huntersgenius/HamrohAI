@@ -4,4 +4,10 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug builds only. The documented development flow points the app at
+         http://10.0.2.2:8000 (the host machine as seen from the emulator), and
+         Android blocks cleartext HTTP by default since API 28. Release builds
+         do not get this attribute, so production traffic stays HTTPS-only. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

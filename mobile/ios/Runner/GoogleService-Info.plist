@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ============================================================================
+  BU YERGA HAQIQIY QIYMAT QO'YILADI — hozircha ishlab chiqish/test kalitlari.
+
+  Bu fayl Firebase konsolidan OLINMAGAN. U qo'lda yozilgan PLACEHOLDER, faqat
+  loyiha tuzilishi to'liq bo'lishi uchun turibdi. Push bildirishnomalar (FCM)
+  bu fayl almashtirilmaguncha iOS'da ISHLAMAYDI.
+
+  Haqiqiy faylni olish:
+    https://console.firebase.google.com
+      → loyihani tanlang
+      → Project settings → Your apps → iOS app (bundle id: uz.hamroh.hamroh)
+      → GoogleService-Info.plist yuklab olish
+      → shu fayl ustiga yozing va Xcode'da Runner target'iga qo'shing.
+
+  To'liq ro'yxat: README.md →
+  "PRODUCTION'GA CHIQISHDAN OLDIN ALMASHTIRILISHI KERAK BO'LGAN FAYLLAR VA KALITLAR"
+  ============================================================================
+  PLACEHOLDER FILE — NOT A REAL FIREBASE CONFIG. Replace before any release.
+  ============================================================================
+-->
+<plist version="1.0">
+<dict>
+	<key>_HAMROH_OGOHLANTIRISH</key>
+	<string>BU YERGA HAQIQIY QIYMAT QO'YILADI — hozircha ishlab chiqish/test kalitlari</string>
+	<key>API_KEY</key>
+	<string>AIzaSyREPLACE-ME-BEFORE-PRODUCTION-000000</string>
+	<key>GCM_SENDER_ID</key>
+	<string>000000000000</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>uz.hamroh.hamroh</string>
+	<key>PROJECT_ID</key>
+	<string>hamroh-placeholder-replace-me</string>
+	<key>STORAGE_BUCKET</key>
+	<string>hamroh-placeholder-replace-me.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<false/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:000000000000:ios:0000000000000000000000</string>
+	<key>CLIENT_ID</key>
+	<string>000000000000-replaceme0000000000000000000000.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.000000000000-replaceme0000000000000000000000</string>
+</dict>
+</plist>
