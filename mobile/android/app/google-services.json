@@ -1,0 +1,41 @@
+{
+  "_HAMROH_OGOHLANTIRISH": "BU YERGA HAQIQIY QIYMAT QO'YILADI — hozircha ishlab chiqish/test kalitlari. Bu fayl Firebase konsolidan olinmagan, u qo'lda yozilgan PLACEHOLDER. Push bildirishnomalar (FCM) shu fayl almashtirilmaguncha ISHLAMAYDI. Haqiqiy faylni olish: https://console.firebase.google.com → loyihani tanlang → Project settings → Your apps → Android app (package: uz.hamroh.hamroh) → google-services.json yuklab olish. To'liq ro'yxat: README.md → 'PRODUCTION'GA CHIQISHDAN OLDIN ALMASHTIRILISHI KERAK BO'LGAN FAYLLAR VA KALITLAR'.",
+  "_HAMROH_WARNING": "PLACEHOLDER FILE — NOT A REAL FIREBASE CONFIG. Replace with the google-services.json downloaded from the Firebase console before any release build.",
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "hamroh-placeholder-replace-me",
+    "storage_bucket": "hamroh-placeholder-replace-me.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "uz.hamroh.hamroh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "000000000000-replaceme0000000000000000000000.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyREPLACE-ME-BEFORE-PRODUCTION-000000"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "000000000000-replaceme0000000000000000000000.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
