@@ -220,9 +220,12 @@ Testlar: `backend/tests/test_payments.py` (29 ta test).
 
 ```bash
 cd backend
-python -m pytest -q          # 172 ta test
+python -m pytest -q          # 193 ta test
 ruff check app tests
 ```
+
+Har push va PR'da bir xil ikki buyruq CI'da ham ishlaydi
+(`.github/workflows/backend-ci.yml`), PostgreSQL 16 service container bilan.
 
 Testlar haqiqiy PostgreSQL'ga qarshi ishlaydi (SQLite emas): sxema qisman
 unikal indeks va JSONB'ga tayanadi, va bu test to'plami isbotlamoqchi bo'lgan
@@ -236,6 +239,7 @@ izolyatsiya kafolatlari faqat production'da ishlaydigan dvigatelda ma'noga ega.
 | `test_consultations.py` | Eksklyuziv claim, 80/20, SLA qaytarish, snapshot muzlatilishi |
 | `test_payments.py` | Click/Payme protokol muvofiqligi, idempotentlik |
 | `test_care_flows.py` | Shablon moslashtirish, dori jadvali, IVR, Excel |
+| `test_mock_mode.py` | Mock rejim: haqiqiy kalitsiz to'liq oqim, tarmoqqa chiqmaslik |
 
 ---
 

@@ -76,8 +76,18 @@ async def send_push(
     if not tokens:
         return PushResult()
 
-    if settings.PUSH_PROVIDER != "fcm" or not settings.FCM_CREDENTIALS_JSON:
-        log.info("push.console", count=len(tokens), title=title)
+    # PUSH_MODE=mock, or FCM simply not configured yet: report the delivery FCM
+    # would have reported and record it, without contacting Google.
+    from app.services.mocks import outbox, push_is_mocked
+
+    if push_is_mocked():
+        outbox.record(
+            "push",
+            f"{len(tokens)} device(s)",
+            f"{title} — {body}",
+            tokens=[t[-6:] for t in tokens],
+            data=data or {},
+        )
         return PushResult(delivered=len(tokens))
 
     result = PushResult()

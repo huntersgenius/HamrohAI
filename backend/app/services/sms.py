@@ -1,4 +1,4 @@
-"""SMS delivery. Uzbek providers (Eskiz, Play Mobile) plus a console stub."""
+"""SMS delivery. Uzbek providers (Eskiz, Play Mobile) plus a mock provider."""
 
 from __future__ import annotations
 
@@ -20,14 +20,21 @@ class SmsProvider(ABC):
         """Send ``text`` to ``phone`` (E.164) and return a provider message id."""
 
 
-class ConsoleSmsProvider(SmsProvider):
-    """Local/dev provider: logs instead of sending."""
+class MockSmsProvider(SmsProvider):
+    """``SMS_MODE=mock`` — nothing leaves the process.
+
+    The message is pushed onto the mock outbox so a developer or an end-to-end
+    test can read the OTP code back out (``GET /api/v1/mock/outbox?kind=sms``)
+    exactly as if the SMS had arrived on the handset.
+    """
 
     async def send(self, phone: str, text: str) -> str:
-        log.info("sms.console", to=phone[-4:], length=len(text))
+        from app.services.mocks import outbox
+
+        event = outbox.record("sms", phone, text, sender=settings.SMS_SENDER, length=len(text))
         if settings.DEBUG:
-            print(f"[SMS] {phone}: {text}")  # noqa: T201
-        return f"console-{int(time.time() * 1000)}"
+            print(f"[SMS mock] {phone}: {text}")  # noqa: T201
+        return f"mock-sms-{event.seq}"
 
 
 class EskizSmsProvider(SmsProvider):
@@ -112,12 +119,16 @@ _provider: SmsProvider | None = None
 def get_sms_provider() -> SmsProvider:
     global _provider
     if _provider is None:
-        if settings.SMS_PROVIDER == "eskiz":
+        from app.services.mocks import sms_is_mocked
+
+        if sms_is_mocked():
+            _provider = MockSmsProvider()
+        elif settings.SMS_PROVIDER == "eskiz":
             _provider = EskizSmsProvider()
         elif settings.SMS_PROVIDER == "playmobile":
             _provider = PlayMobileSmsProvider()
         else:
-            _provider = ConsoleSmsProvider()
+            _provider = MockSmsProvider()
     return _provider
 
 

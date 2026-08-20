@@ -32,10 +32,29 @@ class IvrProvider(ABC):
         """Place the call and return a provider call id."""
 
 
-class ConsoleIvrProvider(IvrProvider):
+class MockIvrProvider(IvrProvider):
+    """``IVR_MODE=mock`` — the call is recorded, never dialled.
+
+    The whole reminder chain (dose due → push → 18 minutes of silence → call
+    row → confirmation webhook) is therefore exercisable without a Twilio
+    account: the simulated call appears in the mock outbox, and the DTMF
+    confirmation is delivered by POSTing to the normal
+    ``/webhooks/ivr/{call_id}/gather`` endpoint with ``Digits=1``.
+    """
+
     async def place_call(self, phone: str, call_id: uuid.UUID) -> str:
-        log.info("ivr.console_call", to=phone[-4:], call_id=str(call_id))
-        return f"console-call-{call_id.hex[:12]}"
+        from app.services.mocks import outbox
+
+        outbox.record(
+            "ivr",
+            phone,
+            f"voice reminder call {call_id}",
+            call_id=str(call_id),
+            gather_url=(
+                f"{settings.IVR_WEBHOOK_BASE_URL}/api/v1/webhooks/ivr/{call_id}/gather"
+            ),
+        )
+        return f"mock-call-{call_id.hex[:12]}"
 
 
 class TwilioIvrProvider(IvrProvider):
@@ -74,9 +93,9 @@ _provider: IvrProvider | None = None
 def get_ivr_provider() -> IvrProvider:
     global _provider
     if _provider is None:
-        _provider = (
-            TwilioIvrProvider() if settings.IVR_PROVIDER == "twilio" else ConsoleIvrProvider()
-        )
+        from app.services.mocks import ivr_is_mocked
+
+        _provider = MockIvrProvider() if ivr_is_mocked() else TwilioIvrProvider()
     return _provider
 
 

@@ -62,3 +62,7 @@ class HealthResponse(BaseModel):
     data_residency_region: str
     database: str
     time: datetime
+    # Which external integrations are simulated rather than real. Production
+    # refuses to start with any of these true (app/core/config.py), so this is
+    # also the fastest way to confirm what a deployment is actually talking to.
+    mocked_integrations: dict[str, bool] = Field(default_factory=dict)

@@ -9,8 +9,15 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Every external integration can run against a simulator instead of the real
+# API. "mock" never opens a socket to the provider: it records what would have
+# been sent (app/services/mocks.py) and returns the provider's success value.
+# This exists because the Click/Payme merchant, SMS and IVR applications have
+# not been approved yet — there are no real credentials to configure.
+ServiceMode = Literal["mock", "real"]
 
 
 class Settings(BaseSettings):
@@ -70,6 +77,15 @@ class Settings(BaseSettings):
     OTP_MAX_PER_PHONE_PER_DAY: int = 10
     # When set, OTP codes are not sent but returned by the API. local/staging only.
     OTP_DEBUG_RETURN_CODE: bool = False
+
+    # ---------------------------------------------------------- service modes
+    # Flip one of these to "real" only once that provider's credentials below
+    # are filled in. See README.md, "MOCK REJIM".
+    SMS_MODE: ServiceMode = "mock"
+    IVR_MODE: ServiceMode = "mock"
+    PUSH_MODE: ServiceMode = "mock"
+    PAYMENT_MODE: ServiceMode = "mock"
+    AI_MODE: ServiceMode = "mock"
 
     # ------------------------------------------------------------------- sms
     SMS_PROVIDER: Literal["eskiz", "playmobile", "console"] = "console"
@@ -146,6 +162,29 @@ class Settings(BaseSettings):
         if v.strip().lower() in {"changeme", "secret", "please-change-me"}:
             raise ValueError("SECRET_KEY must be a real random value")
         return v
+
+    @model_validator(mode="after")
+    def _no_mocks_in_production(self) -> Settings:
+        """A production deployment must never run against a simulator.
+
+        Mock mode returns "paid" without any money moving and swallows every
+        SMS. Shipping that by accident is the single most expensive mistake this
+        configuration can make, so it fails at import time rather than at
+        runtime.
+        """
+        if self.ENV != "production":
+            return self
+        mocked = [
+            name
+            for name in ("SMS_MODE", "IVR_MODE", "PUSH_MODE", "PAYMENT_MODE", "AI_MODE")
+            if getattr(self, name) == "mock"
+        ]
+        if mocked:
+            raise ValueError(
+                "ENV=production does not allow mock mode; set "
+                + ", ".join(f"{name}=real" for name in mocked)
+            )
+        return self
 
     @property
     def sqlalchemy_dsn(self) -> str:

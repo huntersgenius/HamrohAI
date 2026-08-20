@@ -85,7 +85,15 @@ async def create_payment(
 
 
 def build_checkout_url(payment: Payment) -> str:
+    from app.services.mocks import payments_are_mocked
     from app.services.payments import click, payme
+
+    if payments_are_mocked():
+        # No merchant account exists yet: send the client to the in-process
+        # simulator instead of a gateway that would reject the request.
+        from app.services.payments import mock
+
+        return mock.checkout_url(payment)
 
     if payment.provider == PaymentProvider.CLICK:
         return click.checkout_url(payment)

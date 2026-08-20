@@ -21,6 +21,7 @@ from app.core.db import dispose_engine, get_sessionmaker
 from app.core.errors import AppError
 from app.core.logging import configure_logging, get_logger
 from app.schemas.common import ErrorResponse, HealthResponse
+from app.services.mocks import mocked_integrations
 
 log = get_logger(__name__)
 
@@ -147,6 +148,7 @@ async def health() -> HealthResponse:
         data_residency_region=settings.DATA_RESIDENCY_REGION,
         database=database,
         time=datetime.now(UTC),
+        mocked_integrations=mocked_integrations(),
     )
 
 
