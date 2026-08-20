@@ -1,0 +1,109 @@
+name: backend-ci
+
+# Every push and every pull request runs the full backend suite.
+#
+# PostgreSQL is attached as a *service container* on purpose. The test suite is
+# not engine-agnostic: `tests/test_isolation.py` asserts `SELECT version()`
+# contains "PostgreSQL" and reads `pg_indexes` to prove the partial unique index
+# `uq_care_thread_personal` exists. SQLite supports neither partial unique
+# indexes nor JSONB, so swapping it in would turn the isolation guarantees into
+# a suite that goes green while testing nothing.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  test:
+    name: pytest + ruff (PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Same major version as production (deploy/docker-compose.yml).
+        image: postgres:16
+        env:
+          POSTGRES_USER: hamroh
+          POSTGRES_PASSWORD: hamroh
+          # conftest.py connects to /postgres as an admin to CREATE/DROP the
+          # scratch database, so this is only the bootstrap database.
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hamroh"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # conftest.py creates and drops this database around the session.
+      TEST_DATABASE_URL: postgresql+asyncpg://hamroh:hamroh@127.0.0.1:5432/hamroh_test
+      SECRET_KEY: ci-secret-key-that-is-long-enough-1234567890
+      ENV: local
+      # No external service is contacted from CI: every provider is a stub.
+      SMS_PROVIDER: console
+      PUSH_PROVIDER: console
+      IVR_PROVIDER: console
+      AI_PROVIDER: console
+      PAYMENT_MODE: mock
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 5432 -U hamroh; then exit 0; fi
+            sleep 2
+          done
+          echo "PostgreSQL did not become ready" >&2
+          exit 1
+
+      - name: Prove the database really is PostgreSQL
+        env:
+          PGPASSWORD: hamroh
+        run: psql -h 127.0.0.1 -U hamroh -d postgres -c "SELECT version();"
+
+      - name: ruff
+        run: ruff check app tests
+
+      - name: pytest
+        run: python -m pytest -q
+
+      - name: Alembic migration applies to an empty database
+        env:
+          PGPASSWORD: hamroh
+          DATABASE_URL: postgresql+asyncpg://hamroh:hamroh@127.0.0.1:5432/hamroh_migrations
+        run: |
+          psql -h 127.0.0.1 -U hamroh -d postgres -c "CREATE DATABASE hamroh_migrations;"
+          alembic upgrade head
+          psql -h 127.0.0.1 -U hamroh -d hamroh_migrations \
+            -c "SELECT count(*) AS tables FROM information_schema.tables WHERE table_schema='public';"
