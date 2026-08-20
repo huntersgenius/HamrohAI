@@ -95,7 +95,10 @@ jobs:
     # not exist on Linux. This job is the place where `flutter build ios` is
     # actually verified — a Linux container cannot do it at all.
     name: build ios --no-codesign (macOS)
-    runs-on: macos-14
+    # macos-14 ships Xcode 15, whose Swift 5.9 cannot compile
+    # FirebaseCoreInternal: it uses access-level modifiers on imports, which
+    # need Swift 6 / Xcode 16. The image, not the code, is the constraint.
+    runs-on: macos-15
     defaults:
       run:
         working-directory: mobile
